@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply text-gray-900 antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+
+  /* Improve text readability on mobile */
+  @media (max-width: 640px) {
+    h1 {
+      @apply text-3xl leading-tight;
+    }
+    h2 {
+      @apply text-2xl leading-tight;
+    }
+    p {
+      @apply text-base leading-relaxed;
+    }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-6 py-2 rounded-lg font-semibold transition-colors duration-300;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-blue-600 hover:bg-gray-100;
+  }
+
+  /* Responsive container padding */
+  .container-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Responsive grid gaps */
+  .responsive-grid {
+    @apply grid gap-4 sm:gap-6 lg:gap-8;
+  }
+
+  /* Responsive text sizes */
+  .responsive-heading {
+    @apply text-2xl sm:text-3xl lg:text-4xl font-bold;
+  }
+
+  .responsive-text {
+    @apply text-sm sm:text-base lg:text-lg;
+  }
+}
+
+/* Form elements */
+input, textarea, select {
+  @apply w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500;
+  @apply text-base sm:text-sm;
+}
+
+/* Touch target sizes for mobile */
+@media (max-width: 640px) {
+  button, 
+  [role="button"],
+  a {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+/* Improved mobile scrolling */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Better spacing for stacked elements on mobile */
+.stack > * + * {
+  @apply mt-4 sm:mt-6;
+}
+
+/* Responsive images */
+.responsive-image {
+  @apply w-full h-auto object-cover;
+}
+
+/* Responsive padding and margins */
+.section-padding {
+  @apply py-12 sm:py-16 lg:py-20;
+}
+
+.section-margin {
+  @apply my-8 sm:my-12 lg:my-16;
+}
+
+/* Improved mobile navigation */
+.mobile-menu {
+  @apply fixed inset-0 z-50 bg-white/95 backdrop-blur-sm;
+  @apply transform transition-transform duration-300;
+}
+
+/* Better touch feedback */
+.touch-feedback {
+  @apply active:scale-95 transition-transform duration-150;
+}
+
+/* Responsive containers */
+.content-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Responsive typography */
+.text-responsive {
+  @apply text-base sm:text-lg lg:text-xl;
+}
+
+/* Improved card layouts */
+.card {
+  @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300;
+  @apply p-4 sm:p-6 lg:p-8;
+}
+
+/* Better button spacing */
+.button-group {
+  @apply flex flex-col sm:flex-row gap-3 sm:gap-4;
+}
+
+/* Responsive grid layouts */
+.grid-responsive {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8;
+}
+
+/* Improved spacing utilities */
+.space-y-responsive > * + * {
+  @apply mt-4 sm:mt-6 lg:mt-8;
+}
+
+.space-x-responsive > * + * {
+  @apply ml-4 sm:ml-6 lg:ml-8;
+}
