@@ -52,7 +52,7 @@ const LoginPage = () => {
 
           // Solo redirigimos si el usuario está activo en nuestra tabla
           if (userData && userData.is_active) {
-            window.location.href = "http://localhost:5174/";
+            window.location.href = "/";
           } else {
             // Si el usuario existe en Auth pero no está activo en nuestra tabla,
             // lo desconectamos para que complete el proceso normalmente

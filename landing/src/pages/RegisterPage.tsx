@@ -173,10 +173,10 @@ const RegisterPage = () => {
               {successMessage}
               <div className="mt-3">
                 <Link 
-                  to="/login" 
+                  to="/" 
                   className="text-blue-600 hover:text-blue-800 font-medium underline"
                 >
-                  Ir a la página de inicio de sesión
+                  Ir a la página principal
                 </Link>
               </div>
             </div>
