@@ -1,29 +1,40 @@
 import React, { useState } from 'react';
-import { Check, Shield, Clock, FileText, UserCheck, Calendar, Import as Passport, Users, AlertCircle, ArrowRight, X, FileCheck, CreditCard } from 'lucide-react';
+import { Shield, Clock, FileText, UserCheck, Calendar, Import as Passport, Users, AlertCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-scroll';
 
-const Pricing = () => {
-  const [showDateCalculator, setShowDateCalculator] = useState(false);
-  const [entryDate, setEntryDate] = useState('');
-  const [deadlineResult, setDeadlineResult] = useState(null);
-  const [showProcessSelection, setShowProcessSelection] = useState(false);
-  const [showRegistration, setShowRegistration] = useState(false);
-  const [processType, setProcessType] = useState('');
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: ''
-  });
+// Definición de interfaces para el tipado
+interface Requirement {
+  icon: React.FC<React.SVGProps<SVGSVGElement>>;
+  title: string;
+  description: string;
+  critical: boolean;
+}
 
-  const features = [
+interface Feature {
+  icon: React.FC<React.SVGProps<SVGSVGElement>>;
+  text: string;
+}
+
+interface DeadlineResult {
+  deadlineDate: string;
+  daysLeft: number;
+  status: 'expired' | 'urgent' | 'ok';
+  message: string;
+}
+
+const Pricing: React.FC = () => {
+  const [showDateCalculator, setShowDateCalculator] = useState<boolean>(false);
+  const [entryDate, setEntryDate] = useState<string>('');
+  const [deadlineResult, setDeadlineResult] = useState<DeadlineResult | null>(null);
+
+  const features: Feature[] = [
     { icon: Shield, text: "Proceso 100% legal y garantizado" },
     { icon: Clock, text: "Inicio en menos de 48 horas" },
     { icon: FileText, text: "Documentación y traducciones incluidas" },
     { icon: UserCheck, text: "Asesoría personalizada en español" }
   ];
 
-  const requirements = [
+  const requirements: Requirement[] = [
     { 
       icon: Calendar, 
       title: "90 Días desde el Ingreso", 
@@ -44,7 +55,7 @@ const Pricing = () => {
     }
   ];
 
-  const calculateDeadline = (date) => {
+  const calculateDeadline = (date: string): void => {
     if (!date) return;
 
     const entry = new Date(date);
@@ -52,11 +63,13 @@ const Pricing = () => {
     deadline.setDate(entry.getDate() + 89);
 
     const today = new Date();
-    const daysLeft = Math.floor((deadline - today) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.floor((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-    let result = {
+    const result: DeadlineResult = {
       deadlineDate: deadline.toLocaleDateString('es-ES'),
-      daysLeft: daysLeft
+      daysLeft: daysLeft,
+      status: 'ok', // Valor por defecto que será sobrescrito
+      message: '' // Valor por defecto que será sobrescrito
     };
 
     if (daysLeft < 0) {
@@ -73,26 +86,9 @@ const Pricing = () => {
     setDeadlineResult(result);
   };
 
-  const handleProcessSelection = (type) => {
-    setProcessType(type);
-    if (type === 'existing') {
-      setShowRegistration(true);
-    } else {
-      setShowRegistration(false);
-      // Handle new process flow
-    }
-  };
-
-  const handleRegistrationSubmit = (e) => {
-    e.preventDefault();
-    // Here you would typically handle the form submission
-    // For now, we'll simulate moving to payment
-    showPaymentOptions();
-  };
-
-  const showPaymentOptions = () => {
-    // This would typically integrate with your payment API
-    alert('Redirigiendo al sistema de pago...');
+  // Función para redirigir al formulario externo
+  const redirectToForm = (): void => {
+    window.location.href = "http://localhost:5175/";
   };
 
   return (
@@ -149,43 +145,45 @@ const Pricing = () => {
               </button>
             </div>
 
-            {showDateCalculator && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-gray-100"
-              >
-                <h4 className="text-xl font-bold text-gray-900 mb-6">Calcula tu Fecha Límite</h4>
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">
-                      Fecha de ingreso a la UE:
-                    </label>
-                    <input
-                      type="date"
-                      value={entryDate}
-                      onChange={(e) => {
-                        setEntryDate(e.target.value);
-                        calculateDeadline(e.target.value);
-                      }}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      max={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-
-                  {deadlineResult && (
-                    <div className={`p-4 rounded-lg ${
-                      deadlineResult.status === 'expired' ? 'bg-red-50 text-red-700 border border-red-200' :
-                      deadlineResult.status === 'urgent' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
-                      'bg-green-50 text-green-700 border border-green-200'
-                    }`}>
-                      <p className="font-medium">{deadlineResult.message}</p>
+            <AnimatePresence>
+              {showDateCalculator && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-gray-100"
+                >
+                  <h4 className="text-xl font-bold text-gray-900 mb-6">Calcula tu Fecha Límite</h4>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        Fecha de ingreso a la UE:
+                      </label>
+                      <input
+                        type="date"
+                        value={entryDate}
+                        onChange={(e) => {
+                          setEntryDate(e.target.value);
+                          calculateDeadline(e.target.value);
+                        }}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        max={new Date().toISOString().split('T')[0]}
+                      />
                     </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
+
+                    {deadlineResult && (
+                      <div className={`p-4 rounded-lg ${
+                        deadlineResult.status === 'expired' ? 'bg-red-50 text-red-700 border border-red-200' :
+                        deadlineResult.status === 'urgent' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+                        'bg-green-50 text-green-700 border border-green-200'
+                      }`}>
+                        <p className="font-medium">{deadlineResult.message}</p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
           {/* Precio y Características */}
@@ -217,96 +215,13 @@ const Pricing = () => {
                   ))}
                 </div>
 
-                <div className="mt-8 space-y-4">
-                  {!showProcessSelection && (
-                    <button
-                      onClick={() => setShowProcessSelection(true)}
-                      className="block w-full bg-blue-600 text-white text-center py-4 px-6 rounded-xl font-semibold hover:bg-blue-700 transition duration-300 shadow-lg hover:shadow-blue-500/25"
-                    >
-                      Comenzar Proceso
-                    </button>
-                  )}
-
-                  <AnimatePresence>
-                    {showProcessSelection && !showRegistration && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="space-y-4"
-                      >
-                        <h4 className="text-lg font-semibold text-gray-900 mb-4">¿Ya iniciaste tu proceso?</h4>
-                        <button
-                          onClick={() => handleProcessSelection('existing')}
-                          className="block w-full bg-green-600 text-white text-center py-4 px-6 rounded-xl font-semibold hover:bg-green-700 transition duration-300"
-                        >
-                          Sí, ya tengo proceso iniciado
-                        </button>
-                        <button
-                          onClick={() => handleProcessSelection('new')}
-                          className="block w-full bg-blue-600 text-white text-center py-4 px-6 rounded-xl font-semibold hover:bg-blue-700 transition duration-300"
-                        >
-                          No, quiero comenzar de cero
-                        </button>
-                      </motion.div>
-                    )}
-
-                    {showRegistration && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="space-y-4"
-                      >
-                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Completa tus datos</h4>
-                        <form onSubmit={handleRegistrationSubmit} className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Nombre completo
-                            </label>
-                            <input
-                              type="text"
-                              value={formData.name}
-                              onChange={(e) => setFormData({...formData, name: e.target.value})}
-                              className="w-full p-3 border border-gray-300 rounded-lg"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Email
-                            </label>
-                            <input
-                              type="email"
-                              value={formData.email}
-                              onChange={(e) => setFormData({...formData, email: e.target.value})}
-                              className="w-full p-3 border border-gray-300 rounded-lg"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Teléfono
-                            </label>
-                            <input
-                              type="tel"
-                              value={formData.phone}
-                              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                              className="w-full p-3 border border-gray-300 rounded-lg"
-                              required
-                            />
-                          </div>
-                          <button
-                            type="submit"
-                            className="w-full bg-blue-600 text-white py-4 px-6 rounded-xl font-semibold hover:bg-blue-700 transition duration-300 flex items-center justify-center gap-2"
-                          >
-                            <CreditCard size={20} />
-                            Ir al Pago
-                          </button>
-                        </form>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                <div className="mt-8">
+                  <button
+                    onClick={redirectToForm}
+                    className="block w-full bg-blue-600 text-white text-center py-4 px-6 rounded-xl font-semibold hover:bg-blue-700 transition duration-300 shadow-lg hover:shadow-blue-500/25"
+                  >
+                    Comenzar Proceso
+                  </button>
                 </div>
               </div>
             </div>
