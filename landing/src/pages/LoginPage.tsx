@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Lock, Mail, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { supabase } from ".././lib/supabase/client";
+import { supabase } from "../lib/supabase/client";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +13,9 @@ const LoginPage = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Extraer returnUrl del estado si existe
+  const returnUrl = location.state?.returnUrl || "http://localhost:5174/";
 
   useEffect(() => {
     // Verificar si venimos de una redirección de confirmación de correo
@@ -52,7 +55,12 @@ const LoginPage = () => {
 
           // Solo redirigimos si el usuario está activo en nuestra tabla
           if (userData && userData.is_active) {
-            window.location.href = "/";
+            // Redirigir a la URL de retorno si existe, o al inicio
+            if (returnUrl && returnUrl !== "/") {
+              window.location.href = returnUrl;
+            } else {
+              window.location.href = "/";
+            }
           } else {
             // Si el usuario existe en Auth pero no está activo en nuestra tabla,
             // lo desconectamos para que complete el proceso normalmente
@@ -66,7 +74,7 @@ const LoginPage = () => {
 
     handleEmailConfirmation();
     checkSession();
-  }, [location, navigate]);
+  }, [location, navigate, returnUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +99,7 @@ const LoginPage = () => {
       }
 
       // Si la autenticación es exitosa y tenemos sesión
-      
+      if (data.session) {
         // Verificar si el usuario existe y está activo en nuestra tabla users
         const { data: userData, error: userError } = await supabase
           .from("users")
@@ -99,9 +107,9 @@ const LoginPage = () => {
           .eq("email", email)
           .single();
 
-        if (userError || userData?.is_active) {
+        if (userError) {
           console.warn(
-            "Tu cuenta no está activa. Por favor, verifica tu correo electrónico.",
+            "Error al verificar usuario en la base de datos:",
             userError
           );
 
@@ -111,7 +119,6 @@ const LoginPage = () => {
               id: data.session.user.id,
               email: email,
               username: email.split("@")[0], // Usamos parte del email como username provisional
-
               role: "client",
               is_active: true,
             },
@@ -120,22 +127,21 @@ const LoginPage = () => {
           if (insertError) {
             throw new Error("No se pudo crear el perfil de usuario");
           }
-        } else {
+        } else if (!userData.is_active) {
           // Si el usuario no está activo en nuestra base, lo activamos
-          if (!userData.is_active) {
-            await supabase
-              .from("users")
-              .update({ is_active: true })
-              .eq("email", email);
-          }
+          await supabase
+            .from("users")
+            .update({ is_active: true })
+            .eq("email", email);
         }
 
-        // Guardar el token para compartirlo entre aplicaciones
-        /* localStorage.setItem("supabase_auth_token", data.session.access_token); */
-
-        // Redirigir al dashboard del proyecto Administración
-        window.location.href = "http://localhost:5174/";
-      
+        // Redirigir a la URL de retorno si existe
+        if (returnUrl && returnUrl !== "/") {
+          window.location.href = returnUrl;
+        } else {
+          window.location.href = "/";
+        }
+      }
     } catch (error: any) {
       console.error("Error al iniciar sesión:", error);
       setError(

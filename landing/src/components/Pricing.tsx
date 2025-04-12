@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Shield, Clock, FileText, UserCheck, Calendar, Import as Passport, Users, AlertCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // Importar nuestro hook de autenticación
 
 // Definición de interfaces para el tipado
 interface Requirement {
@@ -26,6 +28,8 @@ const Pricing: React.FC = () => {
   const [showDateCalculator, setShowDateCalculator] = useState<boolean>(false);
   const [entryDate, setEntryDate] = useState<string>('');
   const [deadlineResult, setDeadlineResult] = useState<DeadlineResult | null>(null);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth(); // Usamos el contexto de autenticación
 
   const features: Feature[] = [
     { icon: Shield, text: "Proceso 100% legal y garantizado" },
@@ -68,8 +72,8 @@ const Pricing: React.FC = () => {
     const result: DeadlineResult = {
       deadlineDate: deadline.toLocaleDateString('es-ES'),
       daysLeft: daysLeft,
-      status: 'ok', // Valor por defecto que será sobrescrito
-      message: '' // Valor por defecto que será sobrescrito
+      status: 'ok',
+      message: ''
     };
 
     if (daysLeft < 0) {
@@ -86,9 +90,15 @@ const Pricing: React.FC = () => {
     setDeadlineResult(result);
   };
 
-  // Función para redirigir al formulario externo
-  const redirectToForm = (): void => {
-    window.location.href = "http://localhost:5175/";
+  // Función modificada para manejar la redirección según el estado de autenticación
+  const handleStartProcess = (): void => {
+    if (isAuthenticated) {
+      // Si el usuario está autenticado, redirigir directamente al formulario
+      window.location.href = "http://localhost:5175/";
+    } else {
+      // Si no está autenticado, redirigir al login
+      navigate('/login', { state: { returnUrl: "http://localhost:5175/" } });
+    }
   };
 
   return (
@@ -217,7 +227,7 @@ const Pricing: React.FC = () => {
 
                 <div className="mt-8">
                   <button
-                    onClick={redirectToForm}
+                    onClick={handleStartProcess}
                     className="block w-full bg-blue-600 text-white text-center py-4 px-6 rounded-xl font-semibold hover:bg-blue-700 transition duration-300 shadow-lg hover:shadow-blue-500/25"
                   >
                     Comenzar Proceso
