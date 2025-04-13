@@ -93,7 +93,7 @@ const Pricing: React.FC = () => {
   // Función modificada para manejar la redirección según el estado de autenticación
   const handleStartProcess = (): void => {
     if (isAuthenticated) {
-      // Si el usuario está autenticado, redirigir directamente al formulario
+      // Si el usuario está autenticado, redirigir directamente al formulari
       /* window.location.href = "http://localhost:5175/"; */
       navigate("/form");
     } else {
