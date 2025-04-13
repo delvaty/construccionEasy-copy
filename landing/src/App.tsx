@@ -18,6 +18,7 @@ import GuiaPage from "./pages/GuiaPage";
 import BankingPage from "./pages/BankingPage";
 import RegisterPage from "./pages/RegisterPage";
 import { AuthProvider } from "./context/AuthContext";
+import Form from "./pages/Form";
 
 function App() {
   return (
@@ -55,6 +56,7 @@ function App() {
             }
           />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/form" element={<Form/>}/>
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/servicios" element={<ServiciosPage />} />

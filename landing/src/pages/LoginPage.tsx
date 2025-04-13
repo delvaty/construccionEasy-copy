@@ -15,7 +15,7 @@ const LoginPage = () => {
   const location = useLocation();
 
   // Extraer returnUrl del estado si existe
-  const returnUrl = location.state?.returnUrl || "http://localhost:5174/";
+  const returnUrl = location.state?.returnUrl || "/";
 
   useEffect(() => {
     // Verificar si venimos de una redirección de confirmación de correo
@@ -56,10 +56,10 @@ const LoginPage = () => {
           // Solo redirigimos si el usuario está activo en nuestra tabla
           if (userData && userData.is_active) {
             // Redirigir a la URL de retorno si existe, o al inicio
-            if (returnUrl && returnUrl !== "/") {
-              window.location.href = returnUrl;
+            if (returnUrl ) {
+              navigate(returnUrl);
             } else {
-              window.location.href = "/";
+              navigate('/');
             }
           } else {
             // Si el usuario existe en Auth pero no está activo en nuestra tabla,
@@ -136,10 +136,10 @@ const LoginPage = () => {
         }
 
         // Redirigir a la URL de retorno si existe
-        if (returnUrl && returnUrl !== "/") {
-          window.location.href = returnUrl;
+        if (returnUrl ) {
+          navigate(returnUrl);
         } else {
-          window.location.href = "/";
+          navigate('/');
         }
       }
     } catch (error: any) {

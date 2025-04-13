@@ -94,10 +94,11 @@ const Pricing: React.FC = () => {
   const handleStartProcess = (): void => {
     if (isAuthenticated) {
       // Si el usuario está autenticado, redirigir directamente al formulario
-      window.location.href = "http://localhost:5175/";
+      /* window.location.href = "http://localhost:5175/"; */
+      navigate("/form");
     } else {
       // Si no está autenticado, redirigir al login
-      navigate('/login', { state: { returnUrl: "http://localhost:5175/" } });
+      navigate('/login', { state: { returnUrl: "/form" } });
     }
   };
 
