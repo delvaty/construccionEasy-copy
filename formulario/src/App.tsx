@@ -498,15 +498,18 @@ function App() {
         con usted pronto.
       </p>
       <button
-        onClick={() => {
+      onClick={() => {
+        window.location.href = "http://localhost:5174/";
+      }}
+        /* onClick={() => {
           setFormType("selection");
           setCurrentStep(1);
           setFormData(initialFormData);
           setSubmitSuccess(false);
-        }}
+        }} */
         className="mt-8 inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
       >
-        Iniciar Nuevo Registro
+        Ir al panel de cliente
       </button>
     </div>
   );
