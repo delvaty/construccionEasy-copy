@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { FormInput } from "./components/FormInput";
-import { FormSelect } from "./components/FormSelect";
-import { FormRadio } from "./components/FormRadio";
-import { FileUpload } from "./components/FileUpload";
-import { ProgressBar } from "./components/ProgressBar";
+import { FormInput } from "../components/FormInput";
+import { FormSelect } from "../components/FormSelect";
+import { FormRadio } from "../components/FormRadio";
+import { FileUpload } from "../components/FileUpload";
+import { ProgressBar } from "../components/ProgressBar";
 import {
   FormData,
   FormStep,
@@ -11,7 +11,7 @@ import {
   TattooDetail,
   RelativeDetail,
   TravelDetail,
-} from "./types"; // Added TravelDetail
+} from "../types/types"; // Added TravelDetail
 import {
   ClipboardList,
   ArrowLeft,
@@ -20,24 +20,87 @@ import {
   PlusCircle,
   Trash2,
 } from "lucide-react";
-import { supabase } from "./lib/supabase/client";
+import { supabase } from "../lib/supabase/client";
+import DuplicatePassportModal from "../components/DuplicatePassportModal";
 
 // Helper to generate unique IDs
 const generateId = () => `_${Math.random().toString(36).substr(2, 9)}`;
 
-function App() {
+const Form: React.FC= () => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [currentStep, setCurrentStep] = useState(1);
   const [formType, setFormType] = useState<FormStep>("selection");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+const [isPassportDuplicate, setIsPassportDuplicate] = useState(false);
 
-  const handleInputChange = (
+const checkPassportExists = async (passportNumber: string) => {
+    try {
+        if (!passportNumber || passportNumber.trim() === '') {
+          return false;
+        }
+        
+        // Obtener la sesión del usuario
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        // Verifica si hay una sesión activa
+        if (!sessionData?.session?.user?.id) {
+          console.log("No hay sesión de usuario");
+          return false;
+        }
+        
+        // Log para debugging
+        console.log("Verificando pasaporte:", passportNumber);
+        
+        // Realizar la consulta a la base de datos
+        const { data, error } = await supabase
+          .from("clients")
+          .select("id, passport_number")
+          .eq("passport_number", passportNumber)
+          .limit(1);
+        
+        // Manejo de errores en la consulta
+        if (error) {
+          console.error("Error al verificar pasaporte:", error);
+          return false;
+        }
+        
+        // Debugging para ver qué devuelve la consulta
+        console.log("Resultado de la consulta:", data);
+        
+        // Verificar si hay resultados
+        const exists = data && data.length > 0;
+        console.log("¿Existe el pasaporte?", exists);
+        
+        return exists;
+      } catch (error) {
+        console.error("Error inesperado al verificar pasaporte:", error);
+        return false;
+      }
+  };
+
+  const handleInputChange = async (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
+    e.preventDefault();
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "passportNumber") {
+        // Verificar después de que el usuario haya ingresado suficientes caracteres
+        if (value && value.trim().length >= 3) {
+          console.log("Verificando pasaporte:", value);
+          const exists = await checkPassportExists(value);
+          
+          // Actualizar el estado según el resultado
+          setIsPassportDuplicate(exists);
+          if (exists) {
+            setIsDuplicateModalOpen(true);
+          }
+        }
+      }
   };
 
   const handleFileChange = (name: string) => (file: File | null) => {
@@ -1317,7 +1380,7 @@ function App() {
                   <button
                     type="submit"
                     className="inline-flex items-center justify-center px-6 py-2 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors w-full sm:w-auto"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isPassportDuplicate}
                   >
                     {isSubmitting ? (
                       <>
@@ -1343,7 +1406,9 @@ function App() {
                         </svg>
                         Procesando...
                       </>
-                    ) : currentStep === getTotalSteps() ? (
+                    ) : isPassportDuplicate ? (
+                        "Proceso existente"
+                      ) : currentStep === getTotalSteps() ? (
                       <>
                         Enviar{" "}
                         <Send className="ml-2 h-5 w-5" aria-hidden="true" />
@@ -1370,8 +1435,12 @@ function App() {
           </p>
         </footer>
       </div>
+      <DuplicatePassportModal 
+        isOpen={isDuplicateModalOpen} 
+        onClose={() => setIsDuplicateModalOpen(false)} 
+      />
     </div>
   );
 }
 
-export default App;
+export default Form;
