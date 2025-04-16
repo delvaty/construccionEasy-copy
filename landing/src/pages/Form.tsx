@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FormInput } from "../components/FormInput";
 import { FormSelect } from "../components/FormSelect";
 import { FormRadio } from "../components/FormRadio";
@@ -35,8 +35,49 @@ const Form: React.FC= () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
 const [isPassportDuplicate, setIsPassportDuplicate] = useState(false);
+// Nuevo estado para controlar si el usuario ya ha completado un formulario
+const [hasCompletedForm, setHasCompletedForm] = useState(false);
 
-const checkPassportExists = async (passportNumber: string) => {
+// Verificar si el usuario ya completó un formulario al cargar el componente
+useEffect(() => {
+  const checkUserFormStatus = async () => {
+    try {
+      // Obtener la sesión del usuario actual
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      
+      if (!userId) {
+        console.log("No hay sesión de usuario");
+        return;
+      }
+      
+      // Consultar si el usuario ya ha completado un formulario
+      const { data, error } = await supabase
+        .from("clients")
+        .select("has_completed_form")
+        .eq("user_id", userId)
+        .limit(1);
+      
+      if (error) {
+        console.error("Error al verificar estado del formulario:", error);
+        return;
+      }
+      
+      // Si hay datos y has_completed_form es true, actualizar el estado
+      if (data && data.length > 0 && data[0].has_completed_form === true) {
+        setHasCompletedForm(true);
+        // Mostrar el modal si ya completó un formulario
+        setIsDuplicateModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Error al verificar estado del formulario:", error);
+    }
+  };
+  
+  checkUserFormStatus();
+}, []);
+
+/* const checkPassportExists = async (passportNumber: string) => {
     try {
         if (!passportNumber || passportNumber.trim() === '') {
           return false;
@@ -79,7 +120,7 @@ const checkPassportExists = async (passportNumber: string) => {
         console.error("Error inesperado al verificar pasaporte:", error);
         return false;
       }
-  };
+  }; */
 
   const handleInputChange = async (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -88,7 +129,7 @@ const checkPassportExists = async (passportNumber: string) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (name === "passportNumber") {
+    /* if (name === "passportNumber") {
         // Verificar después de que el usuario haya ingresado suficientes caracteres
         if (value && value.trim().length >= 3) {
           console.log("Verificando pasaporte:", value);
@@ -100,7 +141,7 @@ const checkPassportExists = async (passportNumber: string) => {
             setIsDuplicateModalOpen(true);
           }
         }
-      }
+      } */
   };
 
   const handleFileChange = (name: string) => (file: File | null) => {
@@ -144,8 +185,8 @@ const checkPassportExists = async (passportNumber: string) => {
         {
           id: generateId(),
           relationship: "",
-          fullName: "",
-          residencyStatus: "",
+          full_name: "",
+          residency_status: "",
         },
       ],
     }));
@@ -179,8 +220,8 @@ const checkPassportExists = async (passportNumber: string) => {
         ...prev.travels,
         {
           id: generateId(),
-          startDate: "",
-          endDate: "",
+          start_date: "",
+          end_date: "",
           country: "",
           reason: "",
         },
@@ -211,6 +252,11 @@ const checkPassportExists = async (passportNumber: string) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Basic validation check for conditional fields before proceeding
+    if (hasCompletedForm) {
+      setIsDuplicateModalOpen(true);
+      return;
+    }
+
     if (formType === "new") {
       if (
         formData.hasTattoos === true &&
@@ -224,8 +270,8 @@ const checkPassportExists = async (passportNumber: string) => {
         formData.relatives.some(
           (r) =>
             !r.relationship.trim() ||
-            !r.fullName.trim() ||
-            !r.residencyStatus.trim()
+            !r.full_name.trim() ||
+            !r.residency_status.trim()
         )
       ) {
         alert("Por favor, complete todos los detalles de los familiares.");
@@ -235,8 +281,8 @@ const checkPassportExists = async (passportNumber: string) => {
         formData.hasTraveledLastFiveYears === true &&
         formData.travels.some(
           (t) =>
-            !t.startDate.trim() ||
-            !t.endDate.trim() ||
+            !t.start_date.trim() ||
+            !t.end_date.trim() ||
             !t.country.trim() ||
             !t.reason.trim()
         )
@@ -296,6 +342,7 @@ const checkPassportExists = async (passportNumber: string) => {
         current_job: formData.currentJob,
         current_agency: formData.currentAgencyName,
         user_id: userId,
+        has_completed_form: true
       })
       .select();
 
@@ -380,6 +427,7 @@ const checkPassportExists = async (passportNumber: string) => {
         phone_number: formData.phoneNumber,
         current_job: formData.currentJob,
         user_id: userId,
+        has_completed_form: true
       })
       .select();
 
@@ -465,7 +513,7 @@ const checkPassportExists = async (passportNumber: string) => {
       file_path: filePath,
       file_name: file.name,
 
-      user_id: userId,
+      /* user_id: userId, */
     });
 
     if (docError)
@@ -498,8 +546,8 @@ const checkPassportExists = async (passportNumber: string) => {
   ) => {
     const travelInserts = travels.map((travel) => ({
       client_id: clientId,
-      start_date: travel.startDate,
-      end_date: travel.endDate,
+      start_date: travel.start_date,
+      end_date: travel.end_date,
       country: travel.country,
       reason: travel.reason,
     }));
@@ -520,8 +568,8 @@ const checkPassportExists = async (passportNumber: string) => {
     const relativeInserts = relatives.map((relative) => ({
       client_id: clientId,
       relationship: relative.relationship,
-      full_name: relative.fullName,
-      residency_status: relative.residencyStatus,
+      full_name: relative.full_name,
+      residency_status: relative.residency_status,
     }));
 
     if (relativeInserts.length > 0) {
@@ -968,11 +1016,11 @@ const checkPassportExists = async (passportNumber: string) => {
                         label="Fecha Desde"
                         type="date"
                         name={`travel_startDate_${travel.id}`}
-                        value={travel.startDate}
+                        value={travel.start_date}
                         onChange={(e) =>
                           handleTravelChange(
                             travel.id,
-                            "startDate",
+                            "start_date",
                             e.target.value
                           )
                         }
@@ -981,11 +1029,11 @@ const checkPassportExists = async (passportNumber: string) => {
                         label="Fecha Hasta"
                         type="date"
                         name={`travel_endDate_${travel.id}`}
-                        value={travel.endDate}
+                        value={travel.end_date}
                         onChange={(e) =>
                           handleTravelChange(
                             travel.id,
-                            "endDate",
+                            "end_date",
                             e.target.value
                           )
                         }
@@ -1077,11 +1125,11 @@ const checkPassportExists = async (passportNumber: string) => {
                         label="Nombre Completo"
                         type="text"
                         name={`relative_fullName_${relative.id}`}
-                        value={relative.fullName}
+                        value={relative.full_name}
                         onChange={(e) =>
                           handleRelativeChange(
                             relative.id,
-                            "fullName",
+                            "full_name",
                             e.target.value
                           )
                         }
@@ -1090,11 +1138,11 @@ const checkPassportExists = async (passportNumber: string) => {
                       <FormSelect
                         label="Estado Residencia"
                         name={`relative_residency_${relative.id}`}
-                        value={relative.residencyStatus}
+                        value={relative.residency_status}
                         onChange={(e) =>
                           handleRelativeChange(
                             relative.id,
-                            "residencyStatus",
+                            "residency_status",
                             e.target.value
                           )
                         }
@@ -1347,10 +1395,16 @@ const checkPassportExists = async (passportNumber: string) => {
               />
             </div>
           )}
+          {hasCompletedForm ? (
+        <DuplicatePassportModal 
+          isOpen={isDuplicateModalOpen}
+          onClose={() => setIsDuplicateModalOpen(false)}
+        />
+      ) : null}
 
           {submitSuccess ? (
             renderSuccessMessage()
-          ) : (
+          ) :  (
             <form onSubmit={handleSubmit} className="space-y-8">
               {formType === "selection" && renderSelectionScreen()}
               {formType === "new" && renderNewProcessForm()}
@@ -1435,10 +1489,7 @@ const checkPassportExists = async (passportNumber: string) => {
           </p>
         </footer>
       </div>
-      <DuplicatePassportModal 
-        isOpen={isDuplicateModalOpen} 
-        onClose={() => setIsDuplicateModalOpen(false)} 
-      />
+      
     </div>
   );
 }
