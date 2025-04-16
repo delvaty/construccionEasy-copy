@@ -140,6 +140,15 @@ export interface Payment {
   updated_at: string;
 }
 
+export interface PaymentSetting {
+  id: string;
+  process_type: string;
+  total_amount: number;
+  installments: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Notification {
   id: string;
   user_id: string;
