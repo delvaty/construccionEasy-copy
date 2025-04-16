@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Lock, Mail, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase/client";
+import { useAuth } from "../context/AuthContext";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,11 +12,14 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin } = useAuth();
 
   // Extraer returnUrl del estado si existe
-  const returnUrl = location.state?.returnUrl || "/";
+  const returnUrl = location.state?.returnUrl || "/dashboard";
+  const adminReturnUrl = "/admin";
 
   useEffect(() => {
     // Verificar si venimos de una redirección de confirmación de correo
@@ -33,6 +37,7 @@ const LoginPage = () => {
     // Verificar si hay una sesión activa al cargar
     const checkSession = async () => {
       try {
+        console.log("Verificando sesión existente...");
         const { data } = await supabase.auth.getSession();
 
         if (data.session) {
@@ -55,11 +60,12 @@ const LoginPage = () => {
 
           // Solo redirigimos si el usuario está activo en nuestra tabla
           if (userData && userData.is_active) {
-            // Redirigir a la URL de retorno si existe, o al inicio
-            if (returnUrl ) {
-              navigate(returnUrl);
+            // Si el usuario es admin, redirigimos al panel de administración
+            if (userData.role === "admin") {
+              navigate(adminReturnUrl);
             } else {
-              navigate('/');
+              // Redirigir a la URL de retorno si existe, o al inicio para clientes
+              navigate(returnUrl);
             }
           } else {
             // Si el usuario existe en Auth pero no está activo en nuestra tabla,
@@ -74,13 +80,15 @@ const LoginPage = () => {
 
     handleEmailConfirmation();
     checkSession();
-  }, [location, navigate, returnUrl]);
+  }, [location, navigate, returnUrl, adminReturnUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
+
+    console.log("Iniciando proceso de autenticación...");
 
     try {
       // Autenticar con Supabase
@@ -98,14 +106,18 @@ const LoginPage = () => {
         throw error;
       }
 
+      console.log("Autenticación exitosa, verificando datos de usuario...");
+
       // Si la autenticación es exitosa y tenemos sesión
       if (data.session) {
         // Verificar si el usuario existe y está activo en nuestra tabla users
         const { data: userData, error: userError } = await supabase
           .from("users")
-          .select("is_active")
+          .select("*")
           .eq("email", email)
           .single();
+
+        console.log("Resultado de verificación de usuario:", { userData, userError });
 
         if (userError) {
           console.warn(
@@ -119,7 +131,7 @@ const LoginPage = () => {
               id: data.session.user.id,
               email: email,
               username: email.split("@")[0], // Usamos parte del email como username provisional
-              role: "client",
+              role: isAdminLogin && email === "lopez.ayrton@gmail.com" ? "admin" : "client",
               is_active: true,
             },
           ]);
@@ -127,20 +139,34 @@ const LoginPage = () => {
           if (insertError) {
             throw new Error("No se pudo crear el perfil de usuario");
           }
-        } else if (!userData.is_active) {
-          // Si el usuario no está activo en nuestra base, lo activamos
-          await supabase
-            .from("users")
-            .update({ is_active: true })
-            .eq("email", email);
-        }
-
-        // Redirigir a la URL de retorno si existe
-        if (returnUrl ) {
-          navigate(returnUrl);
+          console.log("Perfil de usuario creado exitosamente");
+          
+          // Verificamos el rol después de crear el usuario
+          if (isAdminLogin && email === "lopez.ayrton@gmail.com") {
+            console.log("Administrador autenticado, redirigiendo al panel admin");
+            navigate(adminReturnUrl);
+            return;
+          }
         } else {
-          navigate('/');
+          // Si el usuario no está activo en nuestra base, lo activamos
+          if (!userData.is_active) {
+            await supabase
+              .from("users")
+              .update({ is_active: true })
+              .eq("email", email);
+          }
+          
+          // Verificar si es administrador
+          if (userData.role === "admin") {
+            console.log("Administrador autenticado, redirigiendo al panel admin");
+            navigate(adminReturnUrl);
+            return;
+          }
         }
+        
+        console.log("Cliente autenticado, redirigiendo a:", returnUrl);
+        // Redirigir a la URL de retorno para clientes
+        navigate(returnUrl);
       }
     } catch (error: any) {
       console.error("Error al iniciar sesión:", error);
@@ -183,6 +209,21 @@ const LoginPage = () => {
     }
   };
 
+  const toggleAdminMode = () => {
+    setIsAdminLogin(!isAdminLogin);
+    setError(null);
+    setSuccessMessage(null);
+    
+    // Pre-rellenar credenciales admin si activamos el modo admin
+    if (!isAdminLogin) {
+      setEmail("lopez.ayrton@gmail.com");
+      setPassword("easyProcess*30106");
+    } else {
+      setEmail("");
+      setPassword("");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center px-4">
       <div className="absolute top-4 left-4">
@@ -200,13 +241,29 @@ const LoginPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-xl p-8"
+          className={`bg-white rounded-2xl shadow-xl p-8 ${isAdminLogin ? 'border-2 border-purple-400' : ''}`}
         >
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Bienvenido
+              {isAdminLogin ? "Acceso Administrativo" : "Bienvenido"}
             </h2>
-            <p className="text-gray-600">Accede a tu panel de cliente</p>
+            <p className="text-gray-600">
+              {isAdminLogin
+                ? "Ingresa para administrar el sistema"
+                : "Accede a tu panel de cliente"}
+            </p>
+          </div>
+          
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={toggleAdminMode}
+              className={`flex items-center text-sm ${
+                isAdminLogin ? "text-purple-700" : "text-gray-600"
+              } hover:text-purple-800 transition-colors`}
+            >
+              <ShieldCheck className={`h-4 w-4 mr-1 ${isAdminLogin ? "text-purple-700" : "text-gray-500"}`} />
+              {isAdminLogin ? "Cambiar a modo cliente" : "Acceso administrador"}
+            </button>
           </div>
 
           {error && (
@@ -243,7 +300,9 @@ const LoginPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  className={`block w-full pl-10 pr-3 py-2 border ${
+                    isAdminLogin ? "border-purple-300 focus:ring-purple-500 focus:border-purple-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                  } rounded-lg`}
                   placeholder="tu@email.com"
                   required
                   disabled={loading}
@@ -263,7 +322,9 @@ const LoginPage = () => {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  className={`block w-full pl-10 pr-10 py-2 border ${
+                    isAdminLogin ? "border-purple-300 focus:ring-purple-500 focus:border-purple-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                  } rounded-lg`}
                   placeholder="••••••••"
                   required
                   disabled={loading}
@@ -287,7 +348,9 @@ const LoginPage = () => {
                 <input
                   id="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className={`h-4 w-4 ${
+                    isAdminLogin ? "text-purple-600 focus:ring-purple-500" : "text-blue-600 focus:ring-blue-500"
+                  } border-gray-300 rounded`}
                 />
                 <label
                   htmlFor="remember-me"
@@ -296,34 +359,46 @@ const LoginPage = () => {
                   Recordarme
                 </label>
               </div>
-              <a
-                href="#"
-                className="text-sm font-medium text-blue-600 hover:text-blue-500"
-              >
-                ¿Olvidaste tu contraseña?
-              </a>
+              {!isAdminLogin && (
+                <a
+                  href="#"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                >
+                  ¿Olvidaste tu contraseña?
+                </a>
+              )}
             </div>
 
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300"
+              className={`w-full ${
+                isAdminLogin
+                  ? "bg-purple-600 hover:bg-purple-700 focus:ring-purple-500"
+                  : "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+              } text-white py-3 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-300`}
               disabled={loading}
             >
-              {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              {loading 
+                ? "Iniciando sesión..." 
+                : isAdminLogin 
+                  ? "Acceder como Administrador" 
+                  : "Iniciar Sesión"}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              ¿No tienes una cuenta?{" "}
-              <Link
-                to="/register"
-                className="font-medium text-blue-600 hover:text-blue-500"
-              >
-                Regístrate aquí
-              </Link>
-            </p>
-          </div>
+          {!isAdminLogin && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                ¿No tienes una cuenta?{" "}
+                <Link
+                  to="/register"
+                  className="font-medium text-blue-600 hover:text-blue-500"
+                >
+                  Regístrate aquí
+                </Link>
+              </p>
+            </div>
+          )}
 
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">

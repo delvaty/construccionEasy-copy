@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
+  isAdmin: boolean;
 }
 
 // Creamos el contexto con un valor por defecto
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   isAuthenticated: false,
+  isAdmin: false,
 });
 
 // Hook personalizado para usar el contexto
@@ -28,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
     // Función para obtener la sesión actual
@@ -42,7 +45,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         setSession(data.session);
-        setUser(data.session?.user || null);
+
+        if (data.session?.user) {
+          setUser(data.session.user || null);
+          // Verificar si el usuario es administrador
+          if (data.session.user.id) {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('role')
+              .eq('id', data.session.user.id)
+              .single();
+              
+            if (!userError && userData) {
+              setIsAdmin(userData.role === 'admin');
+            } else {
+              console.error('Error al verificar rol de usuario:', userError);
+              setIsAdmin(false);
+            }
+          }
+        } else {
+          setUser(null);
+          setIsAdmin(false);
+        }
+
+        
+        
       } catch (error) {
         console.error('Error inesperado al verificar la sesión:', error);
       } finally {
@@ -57,7 +84,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
-        setUser(session?.user || null);
+
+        if (session?.user) {
+          setUser(session.user);
+          
+        }
+        
         setLoading(false);
       }
     );
@@ -84,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     signOut,
     isAuthenticated: !!session,
+    isAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
