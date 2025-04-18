@@ -294,6 +294,48 @@ export interface FormData {
   yellowCard: File | null;
 }
 
+export interface ProfileData {
+  // Client info
+  fullName: string;
+  passportNumber: string;
+  dateOfBirth: string;
+  email: string;
+  phoneNumber: string;
+  currentJob: string;
+  currentAgency: string;
+  
+  // Contact info
+  phone: string;
+  whatsapp: string;
+  address: string;
+  voivodeship: string;
+  
+  // New residence application info
+  placeOfBirth: string;
+  peselNumber: string;
+  height: string;
+  eyeColor: string;
+  hairColor: string;
+  fatherName: string;
+  motherName: string;
+  maritalStatus: string;
+  educationLevel: string;
+  city: string;
+  zipCode: string;
+  euEntryDate: string;
+  polandArrivalDate: string;
+  transportMethod: string;
+  traveledLast5Years: boolean;
+  hasRelativesInPoland: boolean;
+  
+  // Ongoing process info
+  firstName: string;
+  lastName: string;
+  hasWorkPermit: boolean;
+  processStage: string;
+  caseNumber: string;
+}
+
 export const initialFormData: FormData = {
   processType: '',
   fullName: '',
