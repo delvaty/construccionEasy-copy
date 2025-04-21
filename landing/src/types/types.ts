@@ -1,4 +1,4 @@
-export type FormStep = 'selection' | 'new' | 'ongoing';
+export type FormStep = "selection" | "new" | "ongoing";
 
 export interface User {
   id: string;
@@ -6,7 +6,7 @@ export interface User {
   username?: string;
   created_at: string;
   updated_at: string;
-  role: 'admin' | 'client';
+  role: "admin" | "client";
   is_active: boolean;
 }
 
@@ -31,19 +31,19 @@ export interface NewResidenceApplication {
   place_of_birth: string;
   pesel_number: string;
   height_cm: number;
-  eye_color: 'Marrón' | 'Azul' | 'Verde' | 'Avellana';
-  hair_color: 'Negro' | 'Marrón' | 'Rubio' | 'Pelirrojo' | 'Gris';
+  eye_color: "Marrón" | "Azul" | "Verde" | "Avellana";
+  hair_color: "Negro" | "Marrón" | "Rubio" | "Pelirrojo" | "Gris";
   has_tattoos: boolean;
   father_name: string;
   mother_name: string;
-  marital_status: 'Soltero/a' | 'Casado/a' | 'Divorciado/a' | 'Viudo/a';
-  education_level: 'Primaria' | 'Secundaria' | 'Licenciatura' | 'Maestría' | 'Doctorado';
+  marital_status: "Soltero/a" | "Casado/a" | "Divorciado/a" | "Viudo/a";
+  education_level: "Primaria" | "Secundaria" | "Licenciatura" | "Maestría" | "Doctorado";
   address: string;
   city: string;
   zip_code: string;
   eu_entry_date: string;
   poland_arrival_date: string;
-  transport_method: 'Aéreo' | 'Terrestre' | 'Marítimo';
+  transport_method: "Aéreo" | "Terrestre" | "Marítimo";
   traveled_last_5_years: boolean;
   has_relatives_in_poland: boolean;
   created_at: string;
@@ -57,24 +57,24 @@ export interface OngoingResidenceProcess {
   last_name: string;
   has_work_permit: boolean;
   voivodato: string;
-  process_stage: 'Solicitud Presentada' | 'Tarjeta Amarilla' | 'Sello Rojo' | 'Negativo' | 'Desconocido';
+  process_stage: "Solicitud Presentada" | "Tarjeta Amarilla" | "Sello Rojo" | "Negativo" | "Desconocido";
   case_number?: string;
   current_address: string;
   whatsapp_number: string;
   created_at: string;
   updated_at: string;
   completed_steps: number;
-  total_steps: number
+  total_steps: number;
 }
 
 export interface ClientDocument {
   id: string;
   client_id: string;
-  document_type: 'passport' | 'yellow_card' | 'other';
+  document_type: "passport" | "yellow_card" | "other";
   file_path: string;
   file_name: string;
   upload_date: string;
-  status: 'Pendiente' | 'Verificado' | 'Rechazado';
+  status: "Pendiente" | "Verificado" | "Rechazado";
 }
 
 export interface ClientTattoo {
@@ -108,8 +108,8 @@ export interface SupportTicket {
   client_id: string;
   ticket_number: string;
   subject: string;
-  status: 'Abierto' | 'En Proceso' | 'Respondido' | 'Cerrado';
-  priority: 'Baja' | 'Media' | 'Alta';
+  status: "Abierto" | "En Proceso" | "Respondido" | "Cerrado";
+  priority: "Baja" | "Media" | "Alta";
   created_at: string;
   updated_at: string;
   closed_at?: string;
@@ -132,7 +132,7 @@ export interface Payment {
   due_date: string;
   installment_number: number;
   total_installments: number;
-  status: 'Pendiente' | 'Pagado' | 'Vencido';
+  status: "Pendiente" | "Pagado" | "Vencido";
   payment_date?: string;
   payment_method?: string;
   notes?: string;
@@ -155,7 +155,7 @@ export interface Notification {
   title: string;
   message: string;
   is_read: boolean;
-  notification_type: 'document' | 'payment' | 'appointment' | 'status' | 'ticket' | 'general';
+  notification_type: "document" | "payment" | "appointment" | "status" | "ticket" | "general";
   related_id?: string;
   created_at: string;
 }
@@ -166,8 +166,8 @@ export interface Alert {
   title: string;
   description: string;
   due_date?: string;
-  priority: 'Baja' | 'Media' | 'Alta';
-  status: 'Pendiente' | 'En Proceso' | 'Completada';
+  priority: "Baja" | "Media" | "Alta";
+  status: "Pendiente" | "En Proceso" | "Completada";
   created_at: string;
   updated_at: string;
   completed_at?: string;
@@ -189,7 +189,7 @@ export interface ClientProcessStage {
   stage_id: string;
   start_date?: string;
   completed_date?: string;
-  status: 'No Iniciado' | 'En Proceso' | 'Completado';
+  status: "No Iniciado" | "En Proceso" | "Completado";
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -232,7 +232,7 @@ export interface JobOffer {
 
 export interface FormData {
   // Selection
-  processType: 'new' | 'ongoing' | '';
+  processType: "new" | "ongoing" | "";
 
   // New Process - Personal Information
   fullName: string;
@@ -303,13 +303,13 @@ export interface ProfileData {
   phoneNumber: string;
   currentJob: string;
   currentAgency: string;
-  
+
   // Contact info
   phone: string;
   whatsapp: string;
   address: string;
   voivodeship: string;
-  
+
   // New residence application info
   placeOfBirth: string;
   peselNumber: string;
@@ -327,7 +327,7 @@ export interface ProfileData {
   transportMethod: string;
   traveledLast5Years: boolean;
   hasRelativesInPoland: boolean;
-  
+
   // Ongoing process info
   firstName: string;
   lastName: string;
@@ -337,44 +337,44 @@ export interface ProfileData {
 }
 
 export const initialFormData: FormData = {
-  processType: '',
-  fullName: '',
-  passportNumber: '',
-  placeOfBirth: '',
-  dateOfBirth: '',
-  peselNumber: '',
-  height: '',
-  eyeColor: '',
-  hairColor: '',
+  processType: "",
+  fullName: "",
+  passportNumber: "",
+  placeOfBirth: "",
+  dateOfBirth: "",
+  peselNumber: "",
+  height: "",
+  eyeColor: "",
+  hairColor: "",
   hasTattoos: null,
   tattoos: [],
-  fatherName: '',
-  motherName: '',
-  maritalStatus: '',
-  educationLevel: '',
-  email: '',
-  phoneNumber: '',
-  address: '',
-  city: '',
-  zipCode: '',
-  euEntryDate: '',
-  polandArrivalDate: '',
-  transportMethod: '',
+  fatherName: "",
+  motherName: "",
+  maritalStatus: "",
+  educationLevel: "",
+  email: "",
+  phoneNumber: "",
+  address: "",
+  city: "",
+  zipCode: "",
+  euEntryDate: "",
+  polandArrivalDate: "",
+  transportMethod: "",
   hasTraveledLastFiveYears: null,
   travels: [],
-  workPermit: '',
-  currentAgencyName: '',
-  currentJob: '',
+  workPermit: "",
+  currentAgencyName: "",
+  currentJob: "",
   relativesInPoland: null,
   relatives: [],
   passportFile: null,
-  firstName: '', // Añadido para coincidir con OngoingResidenceProcess
-  lastName: '',
+  firstName: "", // Añadido para coincidir con OngoingResidenceProcess
+  lastName: "",
   hasWorkPermit: null,
-  voivodeship: '',
-  processStage: '',
-  caseNumber: '',
-  whatsappNumber: '',
-  currentAddress: '',
+  voivodeship: "",
+  processStage: "",
+  caseNumber: "",
+  whatsappNumber: "",
+  currentAddress: "",
   yellowCard: null,
 };
