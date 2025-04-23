@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 
 // Landing components
 import Navbar from "./components/Navbar";
@@ -56,15 +56,27 @@ interface DashboardLayoutProps {
 
 // Componente de protección de rutas para el dashboard
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin = false }) => {
-  const { user, isAdmin } = useAuth();
-  
-  // if (!user) {
-  //   return <Navigate to="/login" replace />;
-  // }
+  const { user, isAdmin, loading } = useAuth();
+  const location = useLocation();
 
-  // if (requireAdmin && !isAdmin) {
-  //   return <Navigate to="/dashboard" replace />;
-  // }
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>;
+  }
+  
+   if (!user) {
+     return <Navigate to="/login" replace />;
+   }
+
+   if (!requireAdmin && isAdmin && location.pathname === '/dashboard') {
+    return <Navigate to="/admin" replace />;
+  }
+  
+
+   /* if (requireAdmin && !isAdmin) {
+     return <Navigate to="/dashboard" replace />;
+   } */
   
   return children;
 };
