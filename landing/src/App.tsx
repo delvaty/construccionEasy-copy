@@ -57,7 +57,7 @@ interface DashboardLayoutProps {
 // Componente de protección de rutas para el dashboard
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin = false }) => {
   const { user, isAdmin, loading } = useAuth();
-  const location = useLocation();
+  /* const location = useLocation(); */
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen">
@@ -69,7 +69,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
      return <Navigate to="/login" replace />;
    }
 
-   if (!requireAdmin && isAdmin && location.pathname === '/dashboard') {
+   if (!requireAdmin && isAdmin && window.location.pathname === '/dashboard') {
     return <Navigate to="/admin" replace />;
   }
   

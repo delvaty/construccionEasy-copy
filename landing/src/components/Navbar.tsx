@@ -28,7 +28,7 @@ const Navbar = () => {
     { name: 'Contacto', to: '/contact', type: 'route' },
   ];
 
-  const renderLink = (item) => {
+  const renderLink = (item: any) => {
     if (item.type === 'scroll' && isHomePage) {
       return (
         <ScrollLink
