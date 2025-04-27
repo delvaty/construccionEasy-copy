@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // Tipos importados del modelo de datos
-import type { Payment, PaymentSetting } from "../../types/types";
+import type { Payment } from "../../types/types";
 import { useAuth } from "../../context/AuthContext"; // Para obtener el usuario autenticado
 import { supabase } from "../../lib/supabase/client"; // Importar el cliente de Supabase
 
@@ -32,9 +32,6 @@ export default function PaymentsPage() {
   >(null);
 
   // Estado para los datos de pago que vendrán de la base de datos
-  const [paymentSetting, setPaymentSetting] = useState<PaymentSetting | null>(
-    null
-  );
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,35 +42,36 @@ export default function PaymentsPage() {
       try {
         setLoading(true);
 
-        // Obtener la configuración de pagos de la tabla payment_settings
-        const { data: settingsData, error: settingsError } = await supabase
-          .from("payments_settings")
-          .select("*")
-          .eq("client_id", user?.id)
-          .single();
-          console.log("Settings data:", settingsData); // Para depuración
-          
-
-        if (settingsError && settingsError.code !== "PGRST116") {
-          // PGRST116 es el código cuando no se encuentra ningún registro
-          throw settingsError;
-        }
-
         // Obtener los pagos del cliente desde la tabla payments
-        const { data: paymentsData, error: paymentsError } = await supabase
-          .from("payments")
-          .select("*")
-          .eq("client_id", user?.id)
-          .order("installment_number", { ascending: true });
-          console.log("Payments data:", paymentsData); // Para depuración
+        const { data: clientData, error: clientError } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("user_id", user?.id)
+          .single();
+          
+        console.log("Client data:", clientData); // Para depuración
+        console.log("user.id:", user?.id);
 
-        if (paymentsError) {
-          throw paymentsError;
+        
+console.log("¿Está autenticado?", supabase.auth.getSession() !== null);
+
+        if (clientError) {
+          throw clientError;
         }
+        if (!clientData) throw new Error("Cliente no encontrado");
+        const clientId = clientData.id;
 
-        setPaymentSetting(settingsData || null);
-        setPayments(paymentsData || []);
-        setLoading(false);
+        // 2. Obtener los pagos del cliente desde la tabla "payments"
+      const { data: paymentsData, error: paymentsError } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("client_id", clientId)
+      .order("installment_number", { ascending: true });
+
+    if (paymentsError) throw paymentsError;
+
+    setPayments(paymentsData || []);
+    setLoading(false);
       } catch (err) {
         console.error("Error fetching payment data:", err);
         setError("Error al cargar los datos de pagos");
@@ -81,25 +79,41 @@ export default function PaymentsPage() {
       }
     };
 
+
+    console.log("user?.id:", user?.id); // Verifica esto
     if (user?.id) {
       fetchPaymentData();
     }
   }, [user?.id]);
 
   // Cálculo de datos para mostrar en la UI
-  const getTotalAmount = () => paymentSetting?.total_amount || 0;
-  const getInstallmentAmount = () =>
-    paymentSetting
-      ? paymentSetting.total_amount / paymentSetting.installments
-      : 0;
+  const getTotalAmount = () => {
+    // Si no hay pagos, retornar 0
+    if (payments.length === 0) return 0;
+    
+    // Calcular el total basado en el primer pago (suponiendo que todos tienen el mismo total_installments)
+    const firstPayment = payments[0];
+    return firstPayment.amount * firstPayment.total_installments;
+  };
+  
+  const getInstallmentAmount = () => {
+    if (payments.length === 0) return 0;
+    return payments[0].amount; // Tomamos el monto de la primera cuota como referencia
+  };
+  
+  const getTotalInstallments = () => {
+    if (payments.length === 0) return 0;
+    return payments[0].total_installments;
+  };
+  
   const getPaidAmount = () => {
     return payments
       .filter((p) => p.status === "Pagado")
       .reduce((sum, payment) => sum + payment.amount, 0);
   };
+  
   const getPaidInstallments = () =>
     payments.filter((p) => p.status === "Pagado").length;
-  const getTotalInstallments = () => paymentSetting?.installments || 0;
 
   // Cálculo de la próxima fecha de pago
   const getNextPaymentDate = () => {
@@ -125,10 +139,10 @@ export default function PaymentsPage() {
   const isAllPaid =
     getPaidInstallments() >= getTotalInstallments() &&
     getTotalInstallments() > 0;
-  const isProcessingInfo = !loading && !paymentSetting;
+  const isProcessingInfo = !loading && payments.length === 0;
 
   const handleInformarPago = async () => {
-    if (isAllPaid || !paymentSetting || !user?.id) return;
+    if (isAllPaid || payments.length === 0 || !user?.id) return;
 
     try {
       // Crear un nuevo registro de pago en la tabla payments
@@ -393,12 +407,9 @@ export default function PaymentsPage() {
                       <p className="text-gray-500 text-base">
                         No has realizado ningún pago todavía
                       </p>
-                      {paymentSetting && (
-                        <p className="text-gray-400 text-sm mt-1">
-                          Tu proceso requiere {paymentSetting.installments}{" "}
-                          pagos de {getInstallmentAmount()} PLN
-                        </p>
-                      )}
+                      <p className="text-gray-400 text-sm mt-1">
+                        Aún no hay información de pagos disponible
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -715,58 +726,72 @@ export default function PaymentsPage() {
             </div>
 
             <div className="space-y-4">
-              {paymentSetting ? (
+              {payments.length > 0 ? (
                 <>
-                  <div className="flex items-start">
-                    <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
-                    <p className="text-gray-700">
-                      Tu proceso de{" "}
-                      <strong>{paymentSetting?.process_type}</strong> tiene un
-                      costo total de <strong>{getTotalAmount()} PLN</strong>,
-                      dividido en{" "}
-                      <strong>{getTotalInstallments()} cuotas</strong> de{" "}
-                      <strong>{getInstallmentAmount()} PLN</strong> cada una.
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Sistema de Pagos
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Tu plan de pago ha sido dividido en {getTotalInstallments()} cuotas mensuales 
+                      de {getInstallmentAmount()} PLN cada una. Los pagos 
+                      vencen el día 1 de cada mes.
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Métodos de Pago
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Aceptamos transferencias bancarias y pagos BLIK. Las 
+                      transferencias bancarias pueden tardar hasta 24 horas en 
+                      procesarse, mientras que los pagos BLIK son inmediatos.
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Pagos Retrasados
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Si un pago se retrasa más de 5 días, se marcará como 
+                      vencido. Por favor, contáctanos si prevés dificultades 
+                      para realizar algún pago a tiempo.
                     </p>
                   </div>
                 </>
               ) : (
-                <div className="flex items-start">
-                  <AlertCircle className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
-                  <p className="text-gray-700">
-                    La información sobre tu proceso de pago aún se está
-                    procesando. Cuando esté disponible, podrás ver el detalle de
-                    cuotas y montos.
+                <div className="text-center py-6">
+                  <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                  <h4 className="font-medium text-gray-900 mb-2">
+                    No hay información de pagos disponible
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Aún no se ha configurado tu plan de pagos. Por favor, 
+                    contacta con nuestro equipo de soporte si crees que 
+                    esto es un error.
                   </p>
                 </div>
               )}
-
-              <div className="flex items-start">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
-                <p className="text-gray-700">
-                  Puedes informar pagos dependiendo de la cantidad de cuotas que
-                  tengas. El botón "Informar Pago" se desactivará cuando hayas
-                  informado todas las cuotas correspondientes.
-                </p>
-              </div>
-
-              <div className="flex items-start">
-                <Calendar className="h-5 w-5 text-yellow-600 mr-2 mt-0.5" />
-                <p className="text-gray-700">
-                  Los pagos informados serán verificados por nuestro equipo
-                  administrativo. Una vez confirmados, el estado cambiará de
-                  "Pendiente" a "Pagado".
-                </p>
-              </div>
-
-              <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
-                <p className="text-sm text-blue-800">
-                  <span className="font-semibold">Importante:</span> Si tienes
-                  alguna duda sobre tus pagos o necesitas un plan de pagos
-                  personalizado, contáctanos a través de la sección de soporte.
-                </p>
-              </div>
+            </div>
+            
+            <div className="mt-6 border-t border-gray-200 pt-4">
+              <h4 className="font-medium text-gray-900 mb-2">
+                ¿Necesitas ayuda?
+              </h4>
+              <p className="text-sm text-gray-600">
+                Para cualquier consulta relacionada con tus pagos, por favor 
+                contacta con nuestro equipo de soporte en{' '}
+                <a href="mailto:support@easyprocess.com" className="text-indigo-600 hover:text-indigo-800">
+                  support@easyprocess.com
+                </a>
+                {' '}o llama al{' '}
+                <a href="tel:+48525789654" className="text-indigo-600 hover:text-indigo-800">
+                  +48 525 789 654
+                </a>
+              </p>
             </div>
 
+            {/* Modal Footer */}
             <div className="mt-6 flex justify-end sticky bottom-0 bg-white pt-3">
               <button
                 onClick={() => setShowInfoModal(false)}

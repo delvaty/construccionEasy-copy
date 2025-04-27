@@ -14,12 +14,12 @@ interface ClientDocument {
   upload_date: string;
 }
 
-// Mapeo de tipos de documentos a nombres legibles
+/* // Mapeo de tipos de documentos a nombres legibles
 const documentTypeLabels: Record<string, string> = {
   passport: "Pasaporte",
   yellow_card: "Carta Amarilla",
   other: "Otro documento",
-};
+}; */
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<ClientDocument[]>([]);
