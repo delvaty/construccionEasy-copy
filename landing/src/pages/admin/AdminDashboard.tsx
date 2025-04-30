@@ -2,6 +2,11 @@ import { useState, useEffect, ChangeEvent } from 'react';
 import { Users, Clock, CheckCircle2, AlertTriangle, FileText, Save } from 'lucide-react';
 import { supabase } from "../../lib/supabase/client";
 import { Client, AdminStats, AdminActivityItem, AdminUrgentTask } from "../../types/types";
+// Importar el módulo de registro de actividades
+import {
+  logUserActivity,
+  logProcessUpdate,
+} from "../../lib/activity-logger";
 
 export default function AdminDashboard() {
   // Estados para almacenar datos de Supabase
@@ -69,10 +74,10 @@ export default function AdminDashboard() {
     }
   };
 
-  // Función para cargar la actividad reciente
+  // Función mejorada para cargar la actividad reciente
   const loadRecentActivity = async (): Promise<void> => {
     try {
-      // Obtener los últimos 5 registros de actividad
+      // Obtener los últimos 10 registros de actividad (aumentado para capturar más actividades de usuario)
       const { data, error } = await supabase
         .from('activity_logs')
         .select(`
@@ -83,7 +88,10 @@ export default function AdminDashboard() {
           clients!inner(full_name)
         `)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10);
+
+        console.log("Datos de actividad reciente:", data); // Debugging line
+        
 
       if (error) {
         console.error("Error al cargar actividad reciente:", error);
@@ -243,6 +251,30 @@ export default function AdminDashboard() {
     }
   };
 
+  // Configurar actualizaciones en tiempo real de la actividad
+  useEffect(() => {
+    // Suscribirse a cambios en la tabla activity_logs
+    const subscription = supabase
+      .channel('activity_logs_changes')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'activity_logs' 
+        }, 
+        (payload) => {
+          // Cuando se inserta un nuevo registro, recargar la actividad reciente
+          loadRecentActivity();
+        }
+      )
+      .subscribe();
+
+    // Limpieza al desmontar
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   // Cargar todos los datos al montar el componente
   useEffect(() => {
     const loadAllData = async (): Promise<void> => {
@@ -257,7 +289,34 @@ export default function AdminDashboard() {
     };
 
     loadAllData();
+
+    // Configurar actualización automática cada minuto para mantener el "hace X tiempo" actualizado
+    const intervalId = setInterval(() => {
+      setRecentActivity(prev => prev.map(activity => ({
+        ...activity,
+        time: getTimeAgo(new Date(new Date().getTime() - getMinutesFromTimeAgo(activity.time) * 60000))
+      })));
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, []);
+
+  // Convierte una cadena de "hace X tiempo" a minutos
+  const getMinutesFromTimeAgo = (timeAgo: string): number => {
+    if (timeAgo === "Justo ahora") return 0;
+    
+    const match = timeAgo.match(/Hace (\d+) (\w+)/);
+    if (!match) return 0;
+    
+    const amount = parseInt(match[1]);
+    const unit = match[2];
+    
+    if (unit.startsWith("minuto")) return amount;
+    if (unit.startsWith("hora")) return amount * 60;
+    if (unit.startsWith("día")) return amount * 24 * 60;
+    
+    return 0;
+  };
 
   // Cargar información del cliente cuando se selecciona uno
   useEffect(() => {
@@ -285,6 +344,12 @@ export default function AdminDashboard() {
         setSaving(false);
         return;
       }
+
+      // Variable para almacenar el tipo de proceso
+      let processType: "new" | "ongoing" = "ongoing";
+      
+      // Campos actualizados para el registro de actividad
+      const updatedFields = ["fecha de inicio", "próximo paso"];
 
       // Si existe proceso activo, actualizamos esa tabla
       if (ongoingProcess && ongoingProcess.length > 0) {
@@ -317,6 +382,8 @@ export default function AdminDashboard() {
           setSaving(false);
           return;
         }
+
+        processType = "ongoing";
       } else {
         // Si no existe proceso activo, verificamos si hay una nueva aplicación
         const { data: newApplication, error: newAppError } = await supabase
@@ -362,6 +429,8 @@ export default function AdminDashboard() {
             setSaving(false);
             return;
           }
+
+          processType = "new";
         } else {
           // Si no existe ningún registro, creamos uno nuevo en ongoing_residence_processes
           const { error: insertError } = await supabase
@@ -383,15 +452,34 @@ export default function AdminDashboard() {
             setSaving(false);
             return;
           }
+
+          processType = "ongoing";
         }
       }
       
-      // Registrar actividad
-      await supabase.from('activity_logs').insert({
-        client_id: clientInfo.id,
-        activity_type: 'Actualización de proceso',
-        description: `Actualización del proceso de ${clientInfo.fullName}`
-      });
+      // Registrar actividad usando el módulo de registro de actividades
+      try {
+        await logProcessUpdate(
+          clientInfo.id,
+          clientInfo.fullName,
+          processType,
+          updatedFields
+        );
+        console.log("Actividad registrada correctamente usando activity-logger");
+      } catch (logError) {
+        console.error("Error al registrar actividad con activity-logger:", logError);
+        
+        // Plan B: Si falla el logger, intentamos con el método directo
+        try {
+          await logUserActivity(
+            clientInfo.id,
+            "Actualización de proceso",
+            `${clientInfo.fullName} actualizó su proceso: ${updatedFields.join(', ')}`
+          );
+        } catch (directError) {
+          console.error("Error al registrar actividad directamente:", directError);
+        }
+      }
       
       setSaveSuccess(true);
       
@@ -490,18 +578,31 @@ export default function AdminDashboard() {
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
+        {/* Recent Activity - Mejorado para mostrar actividades de usuario */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Actividad Reciente</h2>
           {recentActivity.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-96 overflow-y-auto">
               {recentActivity.map((activity) => (
                 <div key={activity.id} className="flex items-center justify-between border-b pb-4">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium text-gray-900">{activity.client}</p>
-                    <p className="text-sm text-gray-500">{activity.action} - {activity.process}</p>
+                    <p className="text-sm text-gray-600">
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs mr-2 ${
+                        activity.action === 'Actualización de perfil' ? 'bg-blue-100 text-blue-800' :
+                        activity.action === 'Actualización de proceso' ? 'bg-green-100 text-green-800' :
+                        activity.action === 'Subida de documento' ? 'bg-purple-100 text-purple-800' :
+                        activity.action === 'Pago realizado' ? 'bg-indigo-100 text-indigo-800' :
+                        activity.action === 'Nuevo ticket' ? 'bg-orange-100 text-orange-800' :
+                        activity.action === 'Respuesta a ticket' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {activity.action}
+                      </span>
+                      {activity.process}
+                    </p>
                   </div>
-                  <span className="text-sm text-gray-400">{activity.time}</span>
+                  <span className="text-sm text-gray-400 whitespace-nowrap ml-2">{activity.time}</span>
                 </div>
               ))}
             </div>
