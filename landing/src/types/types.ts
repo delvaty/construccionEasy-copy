@@ -37,7 +37,12 @@ export interface NewResidenceApplication {
   father_name: string;
   mother_name: string;
   marital_status: "Soltero/a" | "Casado/a" | "Divorciado/a" | "Viudo/a";
-  education_level: "Primaria" | "Secundaria" | "Licenciatura" | "Maestría" | "Doctorado";
+  education_level:
+    | "Primaria"
+    | "Secundaria"
+    | "Licenciatura"
+    | "Maestría"
+    | "Doctorado";
   address: string;
   city: string;
   zip_code: string;
@@ -48,6 +53,9 @@ export interface NewResidenceApplication {
   has_relatives_in_poland: boolean;
   created_at: string;
   updated_at: string;
+  next_steps?: string; // Añadido según la solicitud
+  next_step_title?: string; // Añadido según la solicitud
+  start_date?: string; // Añadido según la solicitud
 }
 
 export interface OngoingResidenceProcess {
@@ -57,7 +65,12 @@ export interface OngoingResidenceProcess {
   last_name: string;
   has_work_permit: boolean;
   voivodato: string;
-  process_stage: "Solicitud Presentada" | "Tarjeta Amarilla" | "Sello Rojo" | "Negativo" | "Desconocido";
+  process_stage:
+    | "Solicitud Presentada"
+    | "Tarjeta Amarilla"
+    | "Sello Rojo"
+    | "Negativo"
+    | "Desconocido";
   case_number?: string;
   current_address: string;
   whatsapp_number: string;
@@ -65,6 +78,11 @@ export interface OngoingResidenceProcess {
   updated_at: string;
   completed_steps: number;
   total_steps: number;
+  clients: Client;
+  client_process_stages: ClientProcessStage[];
+  next_steps?: string; // Añadido según la solicitud
+  next_step_title?: string; // Añadido según la solicitud
+  start_date?: string; // Añadido según la solicitud
 }
 
 export interface ClientDocument {
@@ -156,9 +174,48 @@ export interface Notification {
   title: string;
   message: string;
   is_read: boolean;
-  notification_type: "document" | "payment" | "appointment" | "status" | "ticket" | "general";
+  notification_type:
+    | "document"
+    | "payment"
+    | "appointment"
+    | "status"
+    | "ticket"
+    | "general";
   related_id?: string;
   created_at: string;
+}
+
+export interface AdminStats {
+  totalClients: number;
+  activeProcesses: number;
+  pendingDocuments: number;
+  urgentCases: number;
+}
+
+export interface AdminActivityItem {
+  id: string;
+  client: string;
+  action: string;
+  process: string;
+  time: string;
+}
+
+export interface AdminClientCase {
+  id: string;
+  clientId: string;
+  client: string;
+  processStartDate: string;
+  caseNumber: string;
+  currentStatus: string;
+  nextStep: string;
+}
+
+export interface AdminUrgentTask {
+  id: string;
+  client: string;
+  task: string;
+  description: string;
+  deadline: string;
 }
 
 export interface Alert {
@@ -172,6 +229,18 @@ export interface Alert {
   created_at: string;
   updated_at: string;
   completed_at?: string;
+  clients: Client;
+}
+
+export interface ActivityLog {
+  id: string;
+  user_id?: string;
+  client_id: string;
+  activity_type: string;
+  description: string;
+  created_at: string;
+  updated_at?: string;
+  clients: Client;
 }
 
 export interface ProcessStage {
@@ -180,6 +249,16 @@ export interface ProcessStage {
   stage_order: number;
   description?: string;
   estimated_time_days?: number;
+  created_at: string;
+  updated_at: string;
+  process_type: string;
+}
+
+export interface ProcessType {
+  id: string;
+  name: string;
+  description: string;
+  estimated_duration_days: number;
   created_at: string;
   updated_at: string;
 }
@@ -192,6 +271,7 @@ export interface ClientProcessStage {
   completed_date?: string;
   status: "No Iniciado" | "En Proceso" | "Completado";
   notes?: string;
+  stage_order?: number;
   created_at: string;
   updated_at: string;
 }

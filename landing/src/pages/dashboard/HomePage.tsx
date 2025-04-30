@@ -8,17 +8,20 @@ import {
   OngoingResidenceProcess, 
   ClientDocument, 
   DocumentStats,
-  JobOffer
+  JobOffer,
+  NewResidenceApplication
 } from '../../types/types';
+import { Link } from 'react-router-dom';
 
 interface ClientDashboardProps {
-  user: User | null  ;
+  user: User | null;
 }
 
 const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const [isJobSearching, setIsJobSearching] = useState<boolean>(false);
   const [clientData, setClientData] = useState<Client | null>(null);
   const [processData, setProcessData] = useState<OngoingResidenceProcess | null>(null);
+  const [newApplicationData, setNewApplicationData] = useState<NewResidenceApplication | null>(null);
   const [documentStats, setDocumentStats] = useState<DocumentStats>({ verified: 0, pending: 0, rejected: 0 });
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -26,16 +29,12 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     console.log("ID del usuario recibido en props:", user?.id);
   }, [user]);
   
-  
-
   // Obtener datos del cliente al montar el componente
   useEffect(() => {
     const fetchClientData = async () => {
       try {
         if (!user || !user.id) return;
-        const userId= user.id
-        /* const { data: sessionData } = await supabase.auth.getSession();
-        const userId = sessionData?.session?.user?.id; */
+        const userId = user.id
         
         // Obtener datos del cliente por user_id
         const { data: clientData, error: clientError } = await supabase
@@ -44,8 +43,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
           .eq('user_id', userId)
           .maybeSingle();
           
-          
-          if (clientError) throw clientError;
+        if (clientError) throw clientError;
         
         if (clientData) {
           console.log('CLIENT DATA:', clientData);
@@ -53,15 +51,33 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
           
           // Si el cliente ha completado el formulario, obtener datos del proceso
           if (clientData.has_completed_form) {
-            // Corrección: Cambiar la tabla a 'ongoing_processes' o el nombre correcto de la tabla
+            // Primero intentamos obtener un proceso en curso
             const { data: processData, error: processError } = await supabase
-              .from('ongoing_residence_processes') // Cambiado de 'clients' a 'ongoing_processes'
+              .from('ongoing_residence_processes')
               .select('*')
               .eq('client_id', clientData.id)
-              .single();
+              .maybeSingle();
               
-            if (processError) throw processError;
-            if (processData) setProcessData(processData as OngoingResidenceProcess);
+            if (processError && processError.code !== 'PGRST116') throw processError;
+            
+            if (processData) {
+              console.log('PROCESS DATA:', processData);
+              setProcessData(processData as OngoingResidenceProcess);
+            } else {
+              // Si no hay proceso en curso, intentamos obtener una nueva aplicación
+              const { data: newAppData, error: newAppError } = await supabase
+                .from('new_residence_applications')
+                .select('*')
+                .eq('client_id', clientData.id)
+                .maybeSingle();
+                
+              if (newAppError && newAppError.code !== 'PGRST116') throw newAppError;
+              
+              if (newAppData) {
+                console.log('NEW APPLICATION DATA:', newAppData);
+                setNewApplicationData(newAppData as NewResidenceApplication);
+              }
+            }
           }
           
           // Obtener documentos para contar estados
@@ -129,6 +145,43 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   // Verificar si el usuario ha completado el formulario
   const hasCompletedForm = clientData?.has_completed_form === true;
 
+  // Obtener título y mensaje para los próximos pasos desde los datos
+  const getNextStepTitle = () => {
+    if (!hasCompletedForm) {
+      return "Complete el formulario de solicitud";
+    }
+    
+    // Priorizar datos de la base de datos
+    if (processData?.next_step_title) {
+      return processData.next_step_title;
+    }
+    
+    if (newApplicationData?.next_step_title) {
+      return newApplicationData.next_step_title;
+    }
+    
+    // Fallback a los mensajes generados
+    return getDefaultNextStepMessage(processData, documentStats);
+  };
+  
+  const getNextStepMessage = () => {
+    if (!hasCompletedForm) {
+      return "Para iniciar su proceso de residencia, es necesario completar el formulario con toda la información requerida.";
+    }
+    
+    // Priorizar datos de la base de datos
+    if (processData?.next_steps) {
+      return processData.next_steps;
+    }
+    
+    if (newApplicationData?.next_steps) {
+      return newApplicationData.next_steps;
+    }
+    
+    // Fallback a los mensajes generados
+    return getDefaultNextStepDescription(processData, documentStats);
+  };
+
   return (
     <div className="space-y-8">
       {/* Mensaje para usuarios que no han completado el formulario */}
@@ -144,9 +197,9 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                 Para iniciar su proceso de residencia, por favor complete el formulario de solicitud.
               </p>
               <div className="mt-4">
-                <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <Link to="/form" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                   Completar formulario
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -168,19 +221,25 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                 <p className="text-sm text-gray-600">
                   Fecha de Inicio: 
                   <span className="font-medium text-gray-900 ml-2">
-                    {processData ? formatDate(processData.created_at) : 'Pendiente'}
+                    {processData?.start_date 
+                      ? formatDate(processData.start_date) 
+                      : newApplicationData?.start_date 
+                        ? formatDate(newApplicationData.start_date)
+                        : 'Pendiente'}
                   </span>
                 </p>
                 <p className="text-sm text-gray-600">
                   Número de Caso: 
                   <span className="font-medium text-gray-900 ml-2">
-                    {processData && processData.case_number ? processData.case_number : 'Reservado'}
+                    {processData?.case_number 
+                      ? processData.case_number 
+                      : 'Reservado'}
                   </span>
                 </p>
                 <p className="text-sm text-gray-600">
                   Voivodato: 
                   <span className="font-medium text-gray-900 ml-2">
-                    {processData ? processData.voivodato : 'No disponible'}
+                    {processData?.voivodato || 'No disponible'}
                   </span>
                 </p>
               </div>
@@ -193,7 +252,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                 <h3 className="font-medium text-yellow-900">Estado Actual</h3>
               </div>
               <p className="text-sm text-yellow-800 font-medium">
-                {processData && processData.process_stage 
+                {processData?.process_stage 
                   ? mapProcessStage(processData.process_stage) 
                   : 'Documentación siendo procesada'}
               </p>
@@ -201,7 +260,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                 <p className="text-sm text-gray-600">
                   Próxima Cita: 
                   <span className="font-medium text-gray-900 ml-2">
-                    {processData && processData.updated_at 
+                    {processData?.updated_at 
                       ? formatDate(processData.updated_at) 
                       : 'Sin programar'}
                   </span>
@@ -246,14 +305,10 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
             <AlertCircle className="h-6 w-6 text-blue-600" />
             <div className="ml-3">
               <h3 className="text-sm font-medium text-blue-800">
-                {!hasCompletedForm 
-                  ? "Complete el formulario de solicitud" 
-                  : getNextStepMessage(processData, documentStats)}
+                {getNextStepTitle()}
               </h3>
               <p className="mt-2 text-sm text-blue-700">
-                {!hasCompletedForm 
-                  ? "Para iniciar su proceso de residencia, es necesario completar el formulario con toda la información requerida." 
-                  : getNextStepDescription(processData, documentStats)}
+                {getNextStepMessage()}
               </p>
             </div>
           </div>
@@ -327,8 +382,8 @@ function mapProcessStage(stage: string): string {
   return stageMap[stage] || stage;
 }
 
-// Funciones auxiliares para determinar el mensaje y descripción del próximo paso
-function getNextStepMessage(processData: OngoingResidenceProcess | null, documentStats: DocumentStats): string {
+// Funciones auxiliares para determinar el mensaje y descripción del próximo paso (usado como fallback)
+function getDefaultNextStepMessage(processData: OngoingResidenceProcess | null, documentStats: DocumentStats): string {
   if (!processData) {
     return "Envío de documentación";
   }
@@ -353,7 +408,7 @@ function getNextStepMessage(processData: OngoingResidenceProcess | null, documen
   }
 }
 
-function getNextStepDescription(processData: OngoingResidenceProcess | null, documentStats: DocumentStats): string {
+function getDefaultNextStepDescription(processData: OngoingResidenceProcess | null, documentStats: DocumentStats): string {
   if (!processData) {
     return "Por favor, complete todos los documentos requeridos para iniciar su proceso.";
   }

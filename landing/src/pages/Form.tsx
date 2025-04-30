@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase/client";
 import DuplicatePassportModal from "../components/DuplicatePassportModal";
+import { useNavigate } from "react-router-dom";
 
 // Helper to generate unique IDs
 const generateId = () => `_${Math.random().toString(36).substr(2, 9)}`;
@@ -37,6 +38,8 @@ const Form: React.FC= () => {
 const [isPassportDuplicate, setIsPassportDuplicate] = useState(false);
 // Nuevo estado para controlar si el usuario ya ha completado un formulario
 const [hasCompletedForm, setHasCompletedForm] = useState(false);
+const navigate = useNavigate();
+
 
 // Verificar si el usuario ya completó un formulario al cargar el componente
 useEffect(() => {
@@ -610,7 +613,7 @@ useEffect(() => {
       </p>
       <button
       onClick={() => {
-        window.location.href = "http://localhost:5174/";
+        navigate("/dashboard");
       }}
         /* onClick={() => {
           setFormType("selection");
