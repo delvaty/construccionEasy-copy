@@ -59,7 +59,7 @@ const LoginPage = () => {
           }
 
           // Solo redirigimos si el usuario está activo en nuestra tabla
-          if (userData && userData.is_active) {
+          if (userData /* && userData.is_active */) {
             // Si el usuario es admin, redirigimos al panel de administración
             if (userData.role === "admin") {
               navigate(adminReturnUrl);

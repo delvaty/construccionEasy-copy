@@ -57,7 +57,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .single();
               
             if (!userError && userData) {
-              setIsAdmin(userData.role === 'admin');
+              console.log(userData)
+              setIsAdmin(userData.role == 'admin');
             } else {
               console.error('Error al verificar rol de usuario:', userError);
               setIsAdmin(false);
