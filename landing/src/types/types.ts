@@ -56,6 +56,10 @@ export interface NewResidenceApplication {
   next_steps?: string; // Añadido según la solicitud
   next_step_title?: string; // Añadido según la solicitud
   start_date?: string; // Añadido según la solicitud
+  completed_steps: number;
+  total_steps: number;
+  case_number?: string;
+  voivodato: string;
 }
 
 export interface OngoingResidenceProcess {
