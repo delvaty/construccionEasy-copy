@@ -231,15 +231,17 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                 <p className="text-sm text-gray-600">
                   Número de Caso: 
                   <span className="font-medium text-gray-900 ml-2">
-                    {processData?.case_number 
-                      ? processData.case_number 
-                      : 'Reservado'}
+                  {processData?.case_number 
+      ? processData.case_number 
+      : newApplicationData?.case_number 
+      ? newApplicationData.case_number 
+      : 'Reservado'}
                   </span>
                 </p>
                 <p className="text-sm text-gray-600">
                   Voivodato: 
                   <span className="font-medium text-gray-900 ml-2">
-                    {processData?.voivodato || 'No disponible'}
+                    {processData?.voivodato ? processData.voivodato : newApplicationData?.voivodato ? newApplicationData?.voivodato  : 'No disponible'}
                   </span>
                 </p>
               </div>
@@ -279,7 +281,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                   Completados: 
                   <span className="font-medium text-gray-900 ml-2">
                     {processData 
-                      ? `${processData.completed_steps} de ${processData.total_steps}` 
+                      ? `${processData.completed_steps} de ${processData.total_steps}` : newApplicationData
+                      ? `${newApplicationData.completed_steps} de ${newApplicationData.total_steps}` 
                       : `${documentStats.verified} de 6`}
                   </span>
                 </p>

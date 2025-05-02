@@ -82,10 +82,13 @@ export default function ClientsManagement() {
           .eq("client_id", client.id);
 
         if (newError) throw newError;
-        setNewClient(newData?.[0] || null);
+        if (newData && newData.length > 0) {
+          setNewClient(newData[0]);
+        }
       }
     } catch (error) {
       console.error("Error al obtener datos del cliente:", error);
+      displayAlert("Error al cargar los datos del cliente", "error");
     }
   };
 
@@ -136,7 +139,7 @@ export default function ClientsManagement() {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
-    setOngoingClient((prev) => {
+    setNewClient((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
@@ -171,6 +174,16 @@ export default function ClientsManagement() {
 
         if (processError) throw processError;
       }
+
+      // Si hay una nueva aplicación, actualizar esos datos
+    if (newClient) {
+      const { error: newClientError } = await supabase
+        .from("new_residence_applications")
+        .update(newClient)
+        .eq("id", newClient.id);
+
+      if (newClientError) throw newClientError;
+    }
 
       // Actualizar el estado local para reflejar los cambios
       setClients((prev) =>
@@ -1147,153 +1160,150 @@ export default function ClientsManagement() {
                         className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
                       />
                     </div>
-                    </div>
-                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de llegada a Polonia
+                  </label>
+                  <input
+                    type="date"
+                    name="poland_arrival_date"
+                    value={newClient.poland_arrival_date}
+                    onChange={handleNewClientChange}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Método de transporte
+                  </label>
+                  <input
+                    type="text"
+                    name="transport_method"
+                    value={newClient.transport_method}
+                    onChange={handleNewClientChange}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Viajes en los últimos 5 años
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="traveled_last_5_years"
+                    name="traveled_last_5_years"
+                    checked={newClient.traveled_last_5_years}
+                    onChange={handleNewClientChange}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Familiares en Polonia
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="has_relatives_in_poland"
+                    name="has_relatives_in_poland"
+                    checked={newClient.has_relatives_in_poland}
+                    onChange={handleNewClientChange}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Progreso del proceso
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Fecha de llegada a Polonia
+                      <label className="block text-xs text-gray-500 mb-1">
+                        Pasos completados
                       </label>
                       <input
-                        type="date"
-                        name="poland_arrival_date"
-                        value={newClient.poland_arrival_date}
+                        type="number"
+                        name="completed_steps"
+                        value={newClient.completed_steps || 0}
                         onChange={handleNewClientChange}
+                        min="0"
+                        max={newClient.total_steps}
                         className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Método de transporte
+                      <label className="block text-xs text-gray-500 mb-1">
+                        Total de pasos
                       </label>
                       <input
-                        type="text"
-                        name="transport_method"
-                        value={newClient.transport_method}
+                        type="number"
+                        name="total_steps"
+                        value={newClient.total_steps}
                         onChange={handleNewClientChange}
+                        min="1"
                         className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
                       />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Viajes en los últimos 5 años
-                        </label>
-                        <input
-                          type="checkbox"
-                          id="traveled_last_5_years"
-                          name="traveled_last_5_years"
-                          checked={newClient.traveled_last_5_years}
-                          onChange={handleNewClientChange}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Familiares en Polonia
-                        </label>
-                        <input
-                          type="checkbox"
-                          id="has_relatives_in_poland"
-                          name="has_relatives_in_poland"
-                          checked={newClient.has_relatives_in_poland}
-                          onChange={handleNewClientChange}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Progreso del proceso
-                        </label>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs text-gray-500 mb-1">
-                              Pasos completados
-                            </label>
-                            <input
-                              type="number"
-                              name="completed_steps"
-                              value={newClient.completed_steps}
-                              onChange={handleNewClientChange}
-                              min="0"
-                              max={newClient.total_steps}
-                              className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-gray-500 mb-1">
-                              Total de pasos
-                            </label>
-                            <input
-                              type="number"
-                              name="total_steps"
-                              value={newClient.total_steps}
-                              onChange={handleNewClientChange}
-                              min="1"
-                              className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                              className="bg-indigo-600 h-2.5 rounded-full"
-                              style={{
-                                width: `${Math.round(
-                                  (newClient.completed_steps /
-                                    newClient.total_steps) *
-                                    100
-                                )}%`,
-                              }}
-                            ></div>
-                          </div>
-                          <div className="text-xs text-gray-500 text-right mt-1">
-                            {Math.round(
-                              (newClient.completed_steps / newClient.total_steps) *
-                                100
-                            )}
-                            % completado
-                          </div>
-                        </div>
-                      </div>
-                      
-                      
-                      
-                      <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Voivodato
-                      </label>
-                      <select
-                        name="voivodato"
-                        value={newClient.voivodato}
-                        onChange={handleOngoingProcessChange}
-                        className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
-                      >
-                        <option value="">Seleccionar...</option>
-                        <option value="Dolnośląskie">Dolnośląskie</option>
-                        <option value="Kujawsko-Pomorskie">
-                          Kujawsko-Pomorskie
-                        </option>
-                        <option value="Lubelskie">Lubelskie</option>
-                        <option value="Lubuskie">Lubuskie</option>
-                        <option value="Łódzkie">Łódzkie</option>
-                        <option value="Małopolskie">Małopolskie</option>
-                        <option value="Mazowieckie">Mazowieckie</option>
-                        <option value="Opolskie">Opolskie</option>
-                        <option value="Podkarpackie">Podkarpackie</option>
-                        <option value="Podlaskie">Podlaskie</option>
-                        <option value="Pomorskie">Pomorskie</option>
-                        <option value="Śląskie">Śląskie</option>
-                        <option value="Świętokrzyskie">Świętokrzyskie</option>
-                        <option value="Warmińsko-Mazurskie">
-                          Warmińsko-Mazurskie
-                        </option>
-                        <option value="Wielkopolskie">Wielkopolskie</option>
-                        <option value="Zachodniopomorskie">
-                          Zachodniopomorskie
-                        </option>
-                      </select>
                     </div>
-                      
+                  </div>
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className="bg-indigo-600 h-2.5 rounded-full"
+                        style={{
+                          width: `${Math.round(
+                            (newClient.completed_steps /
+                              newClient.total_steps) *
+                              100
+                          )}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 text-right mt-1">
+                      {Math.round(
+                        (newClient.completed_steps / newClient.total_steps) *
+                          100
+                      )}
+                      % completado
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Voivodato
+                  </label>
+                  <select
+                    name="voivodato"
+                    value={newClient.voivodato || ""}
+                    onChange={handleNewClientChange}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="Dolnośląskie">Dolnośląskie</option>
+                    <option value="Kujawsko-Pomorskie">
+                      Kujawsko-Pomorskie
+                    </option>
+                    <option value="Lubelskie">Lubelskie</option>
+                    <option value="Lubuskie">Lubuskie</option>
+                    <option value="Łódzkie">Łódzkie</option>
+                    <option value="Małopolskie">Małopolskie</option>
+                    <option value="Mazowieckie">Mazowieckie</option>
+                    <option value="Opolskie">Opolskie</option>
+                    <option value="Podkarpackie">Podkarpackie</option>
+                    <option value="Podlaskie">Podlaskie</option>
+                    <option value="Pomorskie">Pomorskie</option>
+                    <option value="Śląskie">Śląskie</option>
+                    <option value="Świętokrzyskie">Świętokrzyskie</option>
+                    <option value="Warmińsko-Mazurskie">
+                      Warmińsko-Mazurskie
+                    </option>
+                    <option value="Wielkopolskie">Wielkopolskie</option>
+                    <option value="Zachodniopomorskie">
+                      Zachodniopomorskie
+                    </option>
+                  </select>
+                </div>
               </div>
             )}
 
