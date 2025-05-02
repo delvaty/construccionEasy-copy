@@ -6,9 +6,9 @@ import {
   /* User, */ 
   Client, 
   OngoingResidenceProcess, 
-  ClientDocument, 
+  /* ClientDocument,  */
   DocumentStats,
-  JobOffer,
+  /* JobOffer, */
   NewResidenceApplication
 } from '../../types/types';
 import { Link } from 'react-router-dom';
@@ -18,7 +18,7 @@ interface ClientDashboardProps {
 }
 
 const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
-  const [isJobSearching, setIsJobSearching] = useState<boolean>(false);
+  /* const [isJobSearching, setIsJobSearching] = useState<boolean>(false); */
   const [clientData, setClientData] = useState<Client | null>(null);
   const [processData, setProcessData] = useState<OngoingResidenceProcess | null>(null);
   const [newApplicationData, setNewApplicationData] = useState<NewResidenceApplication | null>(null);
@@ -109,7 +109,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   }, [user]);
 
   // Datos de ejemplo para ofertas de trabajo
-  const jobOffers: JobOffer[] = [
+  /* const jobOffers: JobOffer[] = [
     {
       id: 1,
       title: 'Logistica',
@@ -131,7 +131,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
       city: 'Wynowo',
       imageUrl: '/api/placeholder/400/320',
     },
-  ];
+  ]; */
 
   // Mostrar un estado de carga mientras se obtienen los datos
   if (loading) {
@@ -316,7 +316,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
       </div>
 
       {/* Interruptor de Búsqueda de Trabajo */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      {/* <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Búsqueda de Trabajo</h2>
         <div className="flex items-center">
           <span className="mr-3 text-gray-700">
@@ -333,10 +333,10 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
           </label>
         </div>
-      </div>
+      </div> */}
 
       {/* Ofertas de Trabajo */}
-      {isJobSearching && (
+      {/* {isJobSearching && (
         <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Ofertas de Trabajo</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -356,7 +356,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
             Aclaración: Las ofertas laborales presentadas son proporcionadas por terceros. No promovemos ni estamos a favor de cobros por cupos, documentación o cualquier otro concepto relacionado con estas ofertas. Si te encuentras con alguna situación de este tipo, por favor infórmanos.
           </p>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
