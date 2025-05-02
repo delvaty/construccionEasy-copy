@@ -289,9 +289,11 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                 <p className="text-sm text-gray-600">
                   Pendientes: 
                   <span className="font-medium text-red-600 ml-2">
-                    {processData 
-                      ? processData.total_steps - processData.completed_steps 
-                      : 6 - documentStats.verified}
+                  {processData
+      ? processData.total_steps - processData.completed_steps
+      : newApplicationData
+      ? newApplicationData.total_steps - newApplicationData.completed_steps
+      : 6 - documentStats.verified}
                   </span>
                 </p>
               </div>
